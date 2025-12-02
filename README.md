@@ -9,6 +9,7 @@ Both client and server components are available.
 
 The client supports the following modes:
 - modbus RTU (serial, over both RS-232 and RS-485),
+- modbus ASCII (serial),
 - modbus TCP (a.k.a. MBAP),
 - modbus TCP over TLS (a.k.a. MBAPS or Modbus Security),
 - modbus TCP over UDP (a.k.a. MBAP over UDP),
@@ -184,6 +185,19 @@ Byte encoding/endianness/word ordering:
 Both client and server objects will log to stdout by default.
 This behavior can be overriden by passing a log.Logger object
 through the Logger property of ClientConfiguration/ServerConfiguration.
+
+### End-to-end testing
+[`uv`](https://github.com/astral-sh/uv) and `socat` are required to run the CLI/transport e2e checks against an independent pymodbus-based mock server. From the repo root:
+```bash
+$ uv run tests/run_modbus_cli_e2e.py    # runs TCP, ASCII, RTU over virtual PTYs
+# select specific modes with --mode tcp|ascii|rtu|serial (serial runs both serial framings)
+```
+To exercise the server against an existing serial device (e.g. `/dev/ttyUSB0`) without the e2e harness:
+```bash
+$ uv run tests/modbus_mock_server.py --mode serial --framing ascii --serial /dev/ttyUSB0
+# then in another terminal
+$ ./modbus-cli --target=ascii:///dev/ttyUSB0 rh:uint16:0+2
+```
 
 ### TODO (in no particular order)
 * Add RTU (serial) support to the server
