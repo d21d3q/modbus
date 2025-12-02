@@ -64,6 +64,7 @@ const (
 	ErrGWPathUnavailable         Error = "gateway path unavailable"
 	ErrGWTargetFailedToRespond   Error = "gateway target device failed to respond"
 	ErrBadCRC                    Error = "bad crc"
+	ErrBadLRC                    Error = "bad lrc"
 	ErrShortFrame                Error = "short frame"
 	ErrProtocolError             Error = "protocol error"
 	ErrBadUnitId                 Error = "bad unit id"

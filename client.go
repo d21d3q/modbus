@@ -119,6 +119,29 @@ func NewClient(conf *ClientConfiguration) (mc *ModbusClient, err error) {
 
 		mc.transportType    = modbusRTU
 
+	case "ascii":
+		if mc.conf.Speed == 0 {
+			mc.conf.Speed   = 19200
+		}
+
+		if mc.conf.DataBits == 0 {
+			mc.conf.DataBits = 8
+		}
+
+		if mc.conf.StopBits == 0 {
+			if mc.conf.Parity == PARITY_NONE {
+				mc.conf.StopBits = 2
+			} else {
+				mc.conf.StopBits = 1
+			}
+		}
+
+		if mc.conf.Timeout == 0 {
+			mc.conf.Timeout = 300 * time.Millisecond
+		}
+
+		mc.transportType    = modbusASCII
+
 	case "rtuovertcp":
 		if mc.conf.Speed == 0 {
 			mc.conf.Speed   = 19200
@@ -226,6 +249,25 @@ func (mc *ModbusClient) Open() (err error) {
 
 		// create the RTU transport
 		mc.transport = newRTUTransport(
+			spw, mc.conf.URL, mc.conf.Speed, mc.conf.Timeout, mc.conf.Logger)
+
+	case modbusASCII:
+		spw = newSerialPortWrapper(&serialPortConfig{
+			Device:  mc.conf.URL,
+			Speed:   mc.conf.Speed,
+			DataBits: mc.conf.DataBits,
+			Parity:   mc.conf.Parity,
+			StopBits: mc.conf.StopBits,
+		})
+
+		err = spw.Open()
+		if err != nil {
+			return
+		}
+
+		discard(spw)
+
+		mc.transport = newASCIITransport(
 			spw, mc.conf.URL, mc.conf.Speed, mc.conf.Timeout, mc.conf.Logger)
 
 	case modbusRTUOverTCP:

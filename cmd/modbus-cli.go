@@ -1136,6 +1136,11 @@ Example: modbus-cli --target=tcp://somehost:502 --timeout=3s rh:uint16:0x100+5 w
          Read 6 holding registers at address 0x100 then set the coil at address 12 to true
          on modbus/tcp device somehost port 502, with a timeout of 3s.
 
+Supported target URL schemes:
+- tcp://, tcp+tls://, udp://
+- rtu://, ascii:// (serial)
+- rtuovertcp://, rtuoverudp://
+
 Available commands:
 * <rc|readCoils>:<addr>[+additional quantity]
   Read coil at address <addr>, plus any additional coils if specified.
