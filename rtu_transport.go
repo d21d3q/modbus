@@ -45,6 +45,8 @@ func newRTUTransport(link rtuLink, addr string, speed uint, timeout time.Duratio
 		rt.t35 = (serialCharTime(speed) * 35) / 10
 	}
 
+	discard(rt.link)
+
 	return
 }
 
@@ -135,12 +137,12 @@ func (rt *rtuTransport) WriteResponse(res *pdu) (err error) {
 
 // Waits for, reads and decodes a frame from the rtu link.
 func (rt *rtuTransport) readRTUFrame() (res *pdu, err error) {
-	var rxbuf	[]byte
-	var byteCount	int
-	var bytesNeeded	int
-	var crc		crc
+	var rxbuf       []byte
+	var byteCount   int
+	var bytesNeeded int
+	var crc         crc
 
-	rxbuf		= make([]byte, maxRTUFrameLength)
+	rxbuf = make([]byte, maxRTUFrameLength)
 
 	// read the serial ADU header: unit id (1 byte), function code (1 byte) and
 	// PDU length/exception code (1 byte)
@@ -189,10 +191,10 @@ func (rt *rtuTransport) readRTUFrame() (res *pdu, err error) {
 	}
 
 	res	= &pdu{
-		unitId:		rxbuf[0],
-		functionCode:	rxbuf[1],
+		unitId:	      rxbuf[0],
+		functionCode: rxbuf[1],
 		// pass the byte count + trailing data as payload, withtout the CRC
-		payload:	rxbuf[2:3 + bytesNeeded  - 2],
+		payload:      rxbuf[2:3 + bytesNeeded  - 2],
 	}
 
 	return

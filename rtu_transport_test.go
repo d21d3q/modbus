@@ -11,12 +11,12 @@ func TestAssembleRTUFrame(t *testing.T) {
 	var rt		*rtuTransport
 	var frame	[]byte
 
-	rt		= &rtuTransport{}
+	rt = &rtuTransport{}
 
-	frame		= rt.assembleRTUFrame(&pdu{
-		unitId:		0x33,
-		functionCode:	0x11,
-		payload:	[]byte{0x22, 0x33, 0x44, 0x55},
+	frame = rt.assembleRTUFrame(&pdu{
+		unitId:       0x33,
+		functionCode: 0x11,
+		payload:      []byte{0x22, 0x33, 0x44, 0x55},
 	})
 	// expect 1 byte of unit id, 1 byte of function code, 4 bytes of payload and
 	// 2 bytes of CRC
@@ -34,10 +34,10 @@ func TestAssembleRTUFrame(t *testing.T) {
 		}
 	}
 
-	frame		= rt.assembleRTUFrame(&pdu{
-		unitId:		0x31,
-		functionCode:	0x06,
-		payload:	[]byte{0x12, 0x34},
+	frame = rt.assembleRTUFrame(&pdu{
+		unitId:       0x31,
+		functionCode: 0x06,
+		payload:      []byte{0x12, 0x34},
 	})
 	// expect 1 byte of unit if, 1 byte of function code, 2 bytes of payload and
 	// 2 bytes of CRC
@@ -65,20 +65,29 @@ func TestRTUTransportReadRTUFrame(t *testing.T) {
 	var err		error
 	var res		*pdu
 
-	txchan		= make(chan []byte, 2)
-	p1, p2		= net.Pipe()
+	txchan = make(chan []byte, 2)
+	p1, p2 = net.Pipe()
 	go feedTestPipe(t, txchan, p1)
 
+	// feed garbage to the transport on init to simulate
+	// data buffering by the RX path of the serial driver while the
+	// device is closed: the transport should discard it and
+	// proceed to normal operation
+	txchan <- []byte{0xfa, 0x8d, 0xcc, 0x1b, 0xf9,}
 
-	rt		= newRTUTransport(p2, "", 9600, 10 * time.Millisecond, nil)
+	rt = newRTUTransport(p2, "", 9600, 10 * time.Millisecond, nil)
+
+	// arm a read/write timeout to avoid deadlocked tests
+	p2.SetDeadline(time.Now().Add(100*time.Millisecond))
 
 	// read a valid response (illegal data address)
-	txchan		<- []byte{
+	txchan <- []byte{
 		0x31, 0x82, // unit id and response code
 		0x02,       // exception code
 		0xc1, 0x6e, // CRC
 	}
-	res, err	= rt.readRTUFrame()
+	res, err = rt.readRTUFrame()
+
 	if err != nil {
 		t.Errorf("readRTUFrame() should have succeeded, got %v", err)
 	}
@@ -97,25 +106,25 @@ func TestRTUTransportReadRTUFrame(t *testing.T) {
 	}
 
 	// read a frame with a bad crc
-	txchan		<- []byte{
+	txchan <- []byte{
 		0x30, 0x82, // unit id and response code
 		0x12,       // exception code
 		0xc0, 0xa2, // CRC
 	}
-	res, err	= rt.readRTUFrame()
+	res, err = rt.readRTUFrame()
 	if err != ErrBadCRC {
 		t.Errorf("readRTUFrame() should have returned ErrBadCrc, got %v", err)
 	}
 
 	// read a longer, valid response
-	txchan		<- []byte{
+	txchan <- []byte{
 		0x31, 0x03, // unit id and response code
 		0x04,       // length
 		0x11, 0x22, // register #1
 		0x33, 0x44, // register #2
 		0x7b, 0xc5, // CRC
 	}
-	res, err	= rt.readRTUFrame()
+	res, err = rt.readRTUFrame()
 	if err != nil {
 		t.Errorf("readRTUFrame() should have succeeded, got %v", err)
 	}
@@ -146,8 +155,8 @@ func TestRTUTransportReadRTUFrame(t *testing.T) {
 }
 
 func feedTestPipe(t *testing.T, in chan []byte, out io.WriteCloser) {
-	var err		error
-	var txbuf	[]byte
+	var err   error
+	var txbuf []byte
 
 	for {
 		// grab a slice of bytes from the channel
