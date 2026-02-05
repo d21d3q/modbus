@@ -24,7 +24,13 @@ both udp:// and rtuoverudp:// schemes.
 
 The server supports:
 - modbus TCP (a.k.a. MBAP),
-- modbus TCP over TLS (a.k.a. MBAPS or Modbus Security).
+- modbus TCP over TLS (a.k.a. MBAPS or Modbus Security),
+- modbus RTU (serial),
+- modbus ASCII (serial).
+
+Note: RTU server framing on general-purpose operating systems is best-effort.
+The implementation uses length/CRC validation and read deadlines; strict RTU
+inter-frame timing (t3.5) cannot be guaranteed on non-real-time kernels.
 
 A CLI client is available in cmd/modbus-cli.go and can be built with
 ```bash
@@ -156,6 +162,16 @@ See:
 * [examples/tcp_server.go](examples/tcp_server.go) for a modbus TCP example
 * [examples/tls_server.go](examples/tls_server.go) for TLS and Modbus Security features
 
+Server URLs are scheme-driven just like the client:
+* `tcp://host:port`
+* `tcp+tls://host:port`
+* `rtu:///dev/ttyUSB0`
+* `ascii:///dev/ttyUSB0`
+
+For serial server modes, use `ServerConfiguration{Speed, DataBits, Parity, StopBits}`
+to match your line settings (defaults are 19200 baud, 8 data bits, and 2 stop bits
+when parity is none; otherwise 1 stop bit).
+
 ### Supported function codes, golang object types and endianness/word ordering
 Function codes:
 * Read coils (0x01)
@@ -191,6 +207,7 @@ through the Logger property of ClientConfiguration/ServerConfiguration.
 ```bash
 $ uv run tests/run_modbus_cli_e2e.py    # runs TCP, ASCII, RTU over virtual PTYs
 # select specific modes with --mode tcp|ascii|rtu|serial (serial runs both serial framings)
+$ uv run tests/run_modbus_server_e2e.py # validates Go server with pymodbus clients (TCP/ASCII/RTU)
 ```
 To exercise the server against an existing serial device (e.g. `/dev/ttyUSB0`) without the e2e harness:
 ```bash
@@ -200,7 +217,6 @@ $ ./modbus-cli --target=ascii:///dev/ttyUSB0 rh:uint16:0+2
 ```
 
 ### TODO (in no particular order)
-* Add RTU (serial) support to the server
 * Add more tests
 * Add diagnostics register support
 * Add fifo register support

@@ -54,8 +54,8 @@ func (at *asciiTransport) Close() (err error) {
 // Runs a request across the link and returns a response.
 func (at *asciiTransport) ExecuteRequest(req *pdu) (res *pdu, err error) {
 	var ts time.Time
-	var t  time.Duration
-	var n  int
+	var t time.Duration
+	var n int
 
 	err = at.link.SetDeadline(time.Now().Add(at.timeout))
 	if err != nil {
@@ -95,9 +95,17 @@ func (at *asciiTransport) ExecuteRequest(req *pdu) (res *pdu, err error) {
 	return
 }
 
-// Reads a request from the link (server-side ASCII currently unsupported).
+// Reads a request from the link.
 func (at *asciiTransport) ReadRequest() (req *pdu, err error) {
-	err = fmt.Errorf("unimplemented")
+	err = at.link.SetDeadline(time.Now().Add(at.timeout))
+	if err != nil {
+		return
+	}
+
+	req, err = at.readASCIIFrame()
+	if err == nil {
+		at.lastActivity = time.Now()
+	}
 
 	return
 }
@@ -125,11 +133,11 @@ func (at *asciiTransport) WriteResponse(res *pdu) (err error) {
 // Reads and decodes a frame from the link.
 func (at *asciiTransport) readASCIIFrame() (res *pdu, err error) {
 	var rxbuf []byte
-	var tmp   []byte
+	var tmp []byte
 	var colon bool
 
 	rxbuf = make([]byte, 0, maxASCIIFrameLength)
-	tmp   = make([]byte, 1)
+	tmp = make([]byte, 1)
 
 	for {
 		var cnt int
@@ -202,7 +210,7 @@ func (at *asciiTransport) readASCIIFrame() (res *pdu, err error) {
 	}
 
 	data := raw[:len(raw)-1]
-	lrc  := raw[len(raw)-1]
+	lrc := raw[len(raw)-1]
 
 	if !verifyLRC(data, lrc) {
 		err = ErrBadLRC
